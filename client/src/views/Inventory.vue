@@ -225,10 +225,6 @@ export default {
 </script>
 
 <style scoped>
-.page-header {
-  margin-bottom: 1.5rem;
-}
-
 .page-header h2 {
   margin-bottom: 0.25rem;
 }
