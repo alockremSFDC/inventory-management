@@ -42,6 +42,29 @@ cd client
 npm install && npm run dev
 ```
 
+`./scripts/start.sh` / `./scripts/stop.sh` start/stop both servers (also exposed as `/start` and `/stop`).
+
+## Commands
+
+```bash
+# Backend tests (run from server/, which owns pyproject.toml and the pytest dev deps;
+# running `uv run pytest` from tests/ fails with "Failed to spawn: pytest")
+cd server && uv run pytest ../tests/backend -v
+cd server && uv run pytest ../tests/backend/test_inventory.py::TestInventoryEndpoints::test_get_all_inventory -v   # single test
+
+# Frontend production build (output: client/dist/)
+cd client && npm run build
+```
+
+There is no frontend test runner and no linter configured for either side. `client/package-lock.json` is gitignored by design (see warning above).
+
+## Architecture
+
+- **Backend** (`server/main.py`, ~300 lines): single FastAPI file holding Pydantic models, shared filter helpers (`apply_filters`, `filter_by_month`), and all routes. `server/mock_data.py` loads every `server/data/*.json` into module-level lists at import time; nothing persists across restarts. `server/generate_data.py` regenerates the JSON files.
+- **Frontend** (`client/src`): routes are registered in `main.js` (Dashboard, Inventory, Orders, Demand, Spending, Reports). `views/Backlog.vue` exists but has no route. All HTTP goes through `api.js`, which hard-codes `http://localhost:8001/api` and drops any filter equal to `'all'` before building the query string.
+- **Shared state** lives in module-level refs inside composables, so every importer sees the same state: `useFilters` (the 4 global filters), `useI18n` (en/ja translations from `locales/`, locale persisted in `localStorage`, and currency derived from locale: en→USD, ja→JPY), `useAuth` (mock user whose display fields also switch on locale). New user-facing strings need keys in both `locales/en.js` and `locales/ja.js`.
+- **Filter semantics**: the `month` filter matches against each record's `order_date` and accepts `YYYY-MM` or a quarter key; the quarter mapping (`QUARTER_MAP`) is hard-coded to 2025 in `main.py`. Inventory has no time dimension, so it ignores `month`.
+
 ## Key Patterns
 
 **Filter System**: 4 filters (Time Period, Warehouse, Category, Order Status) apply to all data via query params
@@ -49,11 +72,12 @@ npm install && npm run dev
 **Reactivity**: Raw data in refs (`allOrders`, `inventoryItems`), derived data in computed properties
 
 ## API Endpoints
-- `GET /api/inventory` - Filters: warehouse, category
-- `GET /api/orders` - Filters: warehouse, category, status, month
+- `GET /api/inventory`, `/api/inventory/{id}` - Filters: warehouse, category
+- `GET /api/orders`, `/api/orders/{id}` - Filters: warehouse, category, status, month
 - `GET /api/dashboard/summary` - All filters
 - `GET /api/demand`, `/api/backlog` - No filters
 - `GET /api/spending/*` - Summary, monthly, categories, transactions
+- `GET /api/reports/quarterly`, `/api/reports/monthly-trends` - Used by the Reports view
 
 ## Common Issues
 1. Use unique keys in v-for (not `index`) - use `sku`, `month`, etc.
@@ -63,7 +87,9 @@ npm install && npm run dev
 5. Revenue goals: $800K/month single, $9.6M YTD all months
 
 ## File Locations
-- Views: `client/src/views/*.vue`
+- Views: `client/src/views/*.vue`; shared modals/widgets: `client/src/components/`
+- Tests: `tests/backend/` (`conftest.py` provides the TestClient fixture); `tests/README.md` lists a `test_orders.py` that does not exist in the repo
+- Sub-guides: `client/CLAUDE.md` and `server/CLAUDE.md` hold generic Vue/FastAPI conventions
 - API Client: `client/src/api.js`
 - Backend: `server/main.py`, `server/mock_data.py`
 - Data: `server/data/*.json`

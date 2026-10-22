@@ -7,7 +7,12 @@ export default {
     finance: 'Finance',
     demandForecast: 'Demand Forecast',
     companyName: 'Catalyst Components',
-    subtitle: 'Inventory Management System'
+    subtitle: 'Inventory Management System',
+    reports: 'Reports',
+    openMenu: 'Open menu',
+    primary: 'Primary navigation',
+    collapse: 'Collapse sidebar',
+    expand: 'Expand sidebar'
   },
 
   // Dashboard
@@ -195,7 +200,8 @@ export default {
     category: 'Category',
     orderStatus: 'Order Status',
     all: 'All',
-    allMonths: 'All Months'
+    allMonths: 'All Months',
+    reset: 'Reset all filters'
   },
 
   // Statuses
